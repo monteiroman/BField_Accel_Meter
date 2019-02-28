@@ -33,6 +33,10 @@ import getpass
 import subprocess
 import datetime
 
+# Import the LSM303 module.
+import Adafruit_LSM303
+
+
 # for RPI version 1, use "bus = smbus.SMBus(0)"
 bus = smbus.SMBus(1)
 
@@ -48,6 +52,8 @@ style.use("ggplot")
 
 f = Figure(figsize=(7,3), dpi=78)
 a = f.add_subplot(111)
+
+
 
 
 
@@ -84,7 +90,7 @@ class BMeasureApp(tk.Tk):
         self.show_frame(StartPage)
         time.sleep(4)
         self.show_frame(PageOne)
-        
+
         self.holdStatus = True
 
 
@@ -94,22 +100,22 @@ class BMeasureApp(tk.Tk):
 
     def quitProgram (self):
         self.tk.destroy()
-        
+
     def holdMeasure (self):
         if self.holdStatus:
             self.holdStatus = False
         else:
             self.holdStatus = True
-			
+
     def getHoldStatus (self):
         return self.holdStatus
 
     def setQMCZeros (self):
         dataStruct.setZeros()
-        
+
     def saveBtnClicked (self):
         dataStruct.setSaveDataStatus(True)
-		
+
 
 
 class StartPage(tk.Frame):
@@ -131,7 +137,7 @@ class StartPage(tk.Frame):
         #button = ttk.Button(self, text="Ir al medidor", style='my.TButton',
                             #command=lambda: controller.show_frame(PageOne))
         #button.pack()
-        
+
         self.img = ImageTk.PhotoImage(Image.open("/home/pi/medidor_campo_b/sources/pictures/logo1.png"))
         self.panel = Label(self, image = self.img)
         self.panel.pack()
@@ -208,7 +214,7 @@ class PageOne(tk.Frame):
         self.msg_x.set(" X: {:.2f}".format(axis[0]) + " uT")
         self.msg_y.set(" Y: {:.2f}".format(axis[1]) + " uT")
         self.msg_z.set(" Z: {:.2f}".format(axis[2]) + " uT")
-        
+
         if dataStruct.getSaveDataStatus():
             self.msg_saveStatus.set("   Guardando...")
         else:
@@ -442,10 +448,10 @@ class DataStructure ():
         self.x_zero = aux_x
         self.y_zero = aux_y
         self.z_zero = aux_z
-        
+
     def getSaveDataStatus (self):
         return self.saveDataStatus
-		
+
     def setSaveDataStatus (self, value):
         self.saveDataStatus = value
 
@@ -489,7 +495,7 @@ def readZerosFromFile ():
         zeroFile.write("0,0,0")
         zeroFile.close()
         zeroFile = open("/home/pi/medidor_campo_b/zeros.txt", "r")
-    
+
     zeroString = zeroFile.read()
 
     x,y,z = zeroString.split(",")
@@ -535,48 +541,52 @@ def dataGraph (axis, timeStamp):
 def SaveMeasureData (axis):
     if dataStruct.measureQuantity == 0: 									# Only open it if there is the first measure
         dataStruct.measureFile = open("/home/pi/medidor_campo_b/data.txt", "w+")
-    
+
     dataStruct.measureFile.write(str(axis[0]) + "," + str(axis[1]) + "," + str(axis[2]) + "\n")
     dataStruct.measureQuantity = dataStruct.measureQuantity +1
-    
+
     if dataStruct.measureQuantity == SAVEMEASURELENGTH:
         dataStruct.setSaveDataStatus(False)
         dataStruct.measureQuantity = 0
         dataStruct.measureFile.close()
         return
-        
-        
-        
+
+
+
 
 def main():
     app = BMeasureApp()
 
     ani = animation.FuncAnimation(f, animate, interval=ANIM_INTVL)
 
-    qmc = Qmc()
-    qmc.QMCReg_Config()
+    lsm303 = Adafruit_LSM303.LSM303()
 
-    dataStruct.startElapsedTime()
-    dataStruct.getZerosFromFile()
-    qmc.setZero(dataStruct.getZeros())
-    
+    # qmc = Qmc()
+    # qmc.QMCReg_Config()
+    #
+    # dataStruct.startElapsedTime()
+    # dataStruct.getZerosFromFile()
+    # qmc.setZero(dataStruct.getZeros())
+
     while True:
         #start = time.time()											# For debugging
 
-        dataStruct.setAxis(qmc.getAxis())
-        dataStruct.setRaw(qmc.getRawAxis())
-        qmc.setZero(dataStruct.getZeros())
+        accel, mag = lsm303.read()
+
+        dataStruct.setAxis(accel)
+        # dataStruct.setRaw(qmc.getRawAxis())
+        # qmc.setZero(dataStruct.getZeros())
         #qmc.ConsolePrint(dataStruct.getAxis())							# For debugging
 
         axisData = dataStruct.getAxis()
         dataGraph(axisData, dataStruct.getElapsedTime())
         if dataStruct.getSaveDataStatus():
             SaveMeasureData(axisData)
-            
+
 		# if the user press the hold button
         if app.getHoldStatus():
             app.frames[PageOne].refreshLabel()
-            
+
         winUpdate (app)
 
         #end = time.time()												# For debugging
