@@ -391,7 +391,7 @@ class DataStructure ():
         self.x = axis[0]
         self.y = axis[1]
         self.z = axis[2]
-        self.mod = axis[3]
+        # self.mod = axis[3]
 
     def getAxis (self):
         return (self.x, self.y, self.z, self.mod)
@@ -564,7 +564,7 @@ def main():
     # qmc = Qmc()
     # qmc.QMCReg_Config()
     #
-    # dataStruct.startElapsedTime()
+    dataStruct.startElapsedTime()
     # dataStruct.getZerosFromFile()
     # qmc.setZero(dataStruct.getZeros())
 
