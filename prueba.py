@@ -1,5 +1,4 @@
 # Install -> Matplotlib
-#         -> Smbus
 #         -> PIL for showing the image at the start. For install it do:
 #               sudo apt-get install python3-pil python3-pil.imagetk
 
@@ -63,6 +62,8 @@ GRAPHLENGTH = 50         # Quantity of points in the x axis of thee graph
 ANIM_INTVL = 1000        # Animation Interval in mS
 AVERAGE_ARRAY_SIZE = 50  # Array size of the average filter
 SAVEMEASURELENGTH = 50   # Quantity of measures saved in the file
+BFIELDSCREEN = 0
+ACCSCREEN = 1
 
 #_________________________CLASSES DEFINITIONS________________________________#
 #--------------------------------------------------------------------------------------#
@@ -138,7 +139,7 @@ class StartPage(tk.Frame):
                             #command=lambda: controller.show_frame(PageOne))
         #button.pack()
 
-        self.img = ImageTk.PhotoImage(Image.open("/home/pi/medidor_campo_b/sources/pictures/logo1.png"))
+        self.img = ImageTk.PhotoImage(Image.open("/home/pi/BField_Accel_Meter/sources/pictures/logo1.png"))
         self.panel = Label(self, image = self.img)
         self.panel.pack()
 
@@ -152,8 +153,10 @@ class PageOne(tk.Frame):
         s = ttk.Style()
         s.configure('my.TButton', font=("Verdana", 16))
 
-        label = tk.Label(self, text="Campo B", font=MEDIUM_FONT)
-        label.grid(row=0, column=0, sticky="n")
+        self.msg_Title = StringVar()
+        self.msg_Title.set("Campo B")
+        self.label = ttk.Label(self, textvariable=self.msg_Title, font=MEDIUM_FONT)
+        self.label.grid(row=0, column=0, sticky="n")
 
         self.valuesFrame = tk.Frame(self)
         self.valuesFrame.grid(row=1, column=0, sticky="nsew")
@@ -164,6 +167,10 @@ class PageOne(tk.Frame):
         self.msg_y.set("---")
         self.msg_z = StringVar()
         self.msg_z.set("---")
+        self.msg_mod = StringVar()
+        self.msg_mod.set("---")
+        self.msg_elap = StringVar()
+        self.msg_elap.set("---")
         self.msg_saveStatus = StringVar()
         self.msg_saveStatus.set("    Listo para guardar")
 
@@ -175,24 +182,28 @@ class PageOne(tk.Frame):
         self.labelY.grid(row=3, column=0, sticky="nsew")
         self.labelZ = ttk.Label(self.valuesFrame, textvariable=self.msg_z, font=MEDIUM_FONT)
         self.labelZ.grid(row=4, column=0, sticky="nsew")
+        self.labelMod = ttk.Label(self.valuesFrame, textvariable=self.msg_mod, font=MEDIUM_FONT)
+        self.labelMod.grid(row=5, column=0, sticky="nsew")
+        self.labelElap = ttk.Label(self.valuesFrame, textvariable=self.msg_elap, font=MEDIUM_FONT)
+        self.labelElap.grid(row=6, column=0, sticky="nsew")
 
 #---------------making size for the graph
         self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        self.labelZ.grid(row=5, column=0, sticky="nsew")
-        self.holdButton = ttk.Button(self.valuesFrame, text="Hold", padding=(5,5), style='my.TButton', command=lambda: controller.holdMeasure())
-        self.holdButton.grid(row=6, column=0, sticky="nsew")
-        self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
         self.labelZ.grid(row=7, column=0, sticky="nsew")
-        self.measureButton = ttk.Button(self.valuesFrame, text="Guardar mediciones", padding=(5,5), style='my.TButton', command=lambda: controller.saveBtnClicked())
-        self.measureButton.grid(row=8, column=0, sticky="nsew")
+        self.holdButton = ttk.Button(self.valuesFrame, text="Hold", padding=(5,5), style='my.TButton', command=lambda: controller.holdMeasure())
+        self.holdButton.grid(row=8, column=0, sticky="nsew")
         self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
         self.labelZ.grid(row=9, column=0, sticky="nsew")
-        self.saveStatusLabel = ttk.Label(self.valuesFrame, textvariable=self.msg_saveStatus, font=SMALL_FONT)
-        self.saveStatusLabel.grid(row=10, column=0, sticky="nsew")
+        self.measureButton = ttk.Button(self.valuesFrame, text="Guardar mediciones", padding=(5,5), style='my.TButton', command=lambda: controller.saveBtnClicked())
+        self.measureButton.grid(row=10, column=0, sticky="nsew")
         self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
         self.labelZ.grid(row=11, column=0, sticky="nsew")
-        self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        self.labelZ.grid(row=12, column=0, sticky="nsew")
+        self.saveStatusLabel = ttk.Label(self.valuesFrame, textvariable=self.msg_saveStatus, font=SMALL_FONT)
+        self.saveStatusLabel.grid(row=12, column=0, sticky="nsew")
+        # self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
+        # self.labelZ.grid(row=12, column=0, sticky="nsew")
+        # self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
+        # self.labelZ.grid(row=12, column=0, sticky="nsew")
         #self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
         #self.labelZ.grid(row=13, column=0, sticky="nsew")
 #---------------
@@ -208,124 +219,31 @@ class PageOne(tk.Frame):
 
 
 
-    def refreshLabel (self):
+    def refreshLabel (self, type):
         axis = dataStruct.getAxis()
+        time = dataStruct.getElapsedTime()
+        # tmp = float(time.seconds + (time.microseconds / 1000000))
 
-        self.msg_x.set(" X: {:.2f}".format(axis[0]) + " uT")
-        self.msg_y.set(" Y: {:.2f}".format(axis[1]) + " uT")
-        self.msg_z.set(" Z: {:.2f}".format(axis[2]) + " uT")
+        if type == BFIELDSCREEN:
+            self.msg_Title.set("Campo B")
+            self.msg_x.set(" X: {:.2f}".format(axis[0]) + " uT")
+            self.msg_y.set(" Y: {:.2f}".format(axis[1]) + " uT")
+            self.msg_z.set(" Z: {:.2f}".format(axis[2]) + " uT")
+            self.msg_mod.set(" Mod: {:.2f}".format(axis[3]) + " uT")
+
+        if type == ACCSCREEN:
+            self.msg_Title.set("Aceleracion")
+            self.msg_x.set(" X: {:.2f}".format(axis[4]) + " G")
+            self.msg_y.set(" Y: {:.2f}".format(axis[5]) + " G")
+            self.msg_z.set(" Z: {:.2f}".format(axis[6]) + " G")
+            self.msg_mod.set(" Mod: {:.2f}".format(axis[7]) + " G")
+
+        self.msg_elap.set(" Frec: {:.0f}".format(1/(time.microseconds/1000000)) + " HZ")
 
         if dataStruct.getSaveDataStatus():
             self.msg_saveStatus.set("   Guardando...")
         else:
             self.msg_saveStatus.set("   Listo para guardar")
-
-
-
-#--------------------------------------------------------------------------------------#
-# QMC Class (i2c communication)
-class Qmc():
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.z = 0
-        self.x_raw = 0
-        self.y_raw = 0
-        self.z_raw = 0
-        self.x_zero = 0
-        self.y_zero = 0
-        self.z_zero = 0
-        self.myfilter = averageFilter()
-        self.avgAux = []
-        #self.correction = 0.0244140625       # 16*1000000/(65536*10000)
-                                             # --> ([rango_en_G * paso_a_uT / [nCuentas_ADC * Gauss_a_Tesla])
-                                             #
-        #self.correction = 0.033333333        # or if we use the info from de QMC's datasheet:
-                                             # 1000000/(10000*3000)  <-- +-8G
-        self.correction = 0.00833333333      # 1000000/(10000*12000)  <-- +-2G
-
-
-    # Writes the byte "data" in the device at "addr" at the "reg" register
-    def WriteByteData (self, addr, reg, data):
-        try:
-                bus.write_byte_data(addr, reg, data)
-        except IOError:
-                print("IOError in writeData, retrying.../n")
-                subprocess.call(['i2cdetect', '-y', '1'])
-                bus.write_byte_data(addr, reg, data)
-        return
-
-
-    # Writes the byte "data" in the device at "addr"
-    def WriteByte (self, addr, data):
-        try:
-                bus.write_byte(addr, data)
-        except IOError:
-                print("IOError in writeData, retrying.../n")
-                subprocess.call(['i2cdetect', '-y', '1'])		# If the sensor fails to receive the data i2cdetect revives it
-                bus.write_byte(addr, data)
-        return
-
-
-    #QMC REGISTER configuration
-    def QMCReg_Config (self):
-        # SET/RESET Period register (0x0B)
-        self.WriteByteData(address, 0x0B, 0x01)                 # It is recommended that the register 0BH is written by 0x01
-        time.sleep(.1)
-
-        # Control register 1 (0x09)
-        self.WriteByteData(address, 0x09, 0x0D)                 # Continuous Measure Mode - 200Hz Output Data Rate - 2G Full Scale (0x1D if +-8G)- Over Sample Rate 512
-        time.sleep(.1)
-        print("QMC Configured...")
-
-
-    def ReadByte (self, device_addr, reg_ini):
-        # Tells the QMC what register is going to be read
-        # Starting with register reg_ini.
-        self.WriteByte (device_addr, reg_ini)
-
-        # Read the data..
-        aux = bus.read_i2c_block_data(device_addr, reg_ini, 2)
-
-        data =  aux[0]                                    #LSB
-        data |= aux[1] << 8;                              #MSB
-
-        # Converts to 2 complements and returns
-        if data > 32767:
-            return int((65536-data) * (-1))
-        else:
-            return int(data)
-
-
-    def ConsolePrint (self, axis):
-        s = 'x=' + repr(axis[0]) + '\t  y=' + repr(axis[1]) + '\t  z=' + repr(axis[2]) + '\t  Modulo=' + repr(axis[3])
-        print(s)
-
-
-    def getAxis (self):
-        xAux = float('%.2f'%(self.ReadByte(address,0x00) * self.correction))
-        yAux = float('%.2f'%(self.ReadByte(address,0x02) * self.correction))
-        zAux = float('%.2f'%(self.ReadByte(address,0x04) * self.correction))
-        avgAux = self.myfilter.filterAvg([xAux, yAux, zAux])
-        self.x_raw = avgAux[0]
-        self.y_raw = avgAux[1]
-        self.z_raw = avgAux[2]
-        self.x = self.x_raw - self.x_zero
-        self.y = self.y_raw - self.y_zero
-        self.z = self.z_raw - self.z_zero
-
-        self.mod = math.sqrt(self.x**2 + self.y**2 + self.z**2)
-
-        return [self.x, self.y, self.z, self.mod]
-
-
-    def setZero (self, zeros):
-        self.x_zero = zeros[0]
-        self.y_zero = zeros[1]
-        self.z_zero = zeros[2]
-
-    def getRawAxis (self):
-        return [self.x_raw, self.y_raw, self.z_raw]
 
 
 
@@ -368,18 +286,25 @@ class DataStructure ():
         self.xGraphList = []
         self.yGraphList = []
         self.zGraphList = []
+
         self.timeGraphList = []
 
-        self.x = 0
-        self.y = 0
-        self.z = 0
-        self.x_raw = 0
-        self.y_raw = 0
-        self.z_raw = 0
-        self.x_zero = 0
-        self.y_zero = 0
-        self.z_zero = 0
-        self.mod = 0
+        self.x_mag = 0
+        self.y_mag = 0
+        self.z_mag = 0
+        self.x_zero_mag = 0
+        self.y_zero_mag = 0
+        self.z_zero_mag = 0
+        self.mod_mag = 0
+
+        self.x_acc = 0
+        self.y_acc = 0
+        self.z_acc = 0
+        self.x_zero_acc = 0
+        self.y_zero_acc = 0
+        self.z_zero_acc = 0
+        self.mod_acc = 0
+
         self.end_time = 0
         self.start_time = 0
         self.timeStamp = 0
@@ -387,14 +312,21 @@ class DataStructure ():
         self.measureQuantity = 0
         self.measureFile = 0
 
-    def setAxis (self, axis):
-        self.x = axis[0]
-        self.y = axis[1]
-        self.z = axis[2]
-        # self.mod = axis[3]
+        self.measureSceenType = ACCSCREEN
+
+    def setAxis (self, axis_mag, axis_accel):
+        self.x_mag = axis_mag[0]/10
+        self.y_mag = axis_mag[1]/10
+        self.z_mag = axis_mag[2]/10
+        self.mod_mag = math.sqrt(self.x_mag**2 + self.y_mag**2 + self.z_mag**2)
+
+        self.x_acc = axis_accel[0]/1000
+        self.y_acc = axis_accel[1]/1000
+        self.z_acc = axis_accel[2]/1000
+        self.mod_acc = math.sqrt(self.x_acc**2 + self.y_acc**2 + self.z_acc**2)
 
     def getAxis (self):
-        return (self.x, self.y, self.z, self.mod)
+        return (self.x_mag, self.y_mag, self.z_mag, self.mod_mag, self.x_acc, self.y_acc, self.z_acc, self.mod_acc)
 
     def startElapsedTime (self):
         self.start_time = datetime.datetime.now()
@@ -428,14 +360,18 @@ class DataStructure ():
         self.timeGraphList.pop(0)
 
     def setZeros (self):
-        self.x_zero = self.x_raw
-        self.y_zero = self.y_raw
-        self.z_zero = self.z_raw
+        self.x_zero_mag = self.x_mag
+        self.y_zero_mag = self.y_mag
+        self.z_zero_mag = self.z_mag
 
-        saveZeros(self.x_zero, self.y_zero, self.z_zero)
+        self.x_zero_acc = self.x_acc
+        self.y_zero_acc = self.y_acc
+        self.z_zero_acc = self.z_acc
+
+        saveZeros(self.x_zero_mag, self.y_zero_mag, self.z_zero_mag, self.x_zero_acc, self.y_zero_acc, self.z_zero_acc)
 
     def getZeros (self):
-        return (self.x_zero, self.y_zero, self.z_zero)
+        return (self.x_zero_mag, self.y_zero_mag, self.z_zero_mag)
 
     def setRaw (self, raw_data):
         self.x_raw = raw_data[0]
@@ -445,15 +381,21 @@ class DataStructure ():
     def getZerosFromFile (self):
         aux_x, aux_y, aux_z = readZerosFromFile()
 
-        self.x_zero = aux_x
-        self.y_zero = aux_y
-        self.z_zero = aux_z
+        self.x_zero_mag = aux_x
+        self.y_zero_mag = aux_y
+        self.z_zero_mag = aux_z
 
     def getSaveDataStatus (self):
         return self.saveDataStatus
 
     def setSaveDataStatus (self, value):
         self.saveDataStatus = value
+
+    def setScreenType (type):
+        self.measureSceenType = type
+
+    def getSceenType ():
+        return self.measureSceenType
 
 
 dataStruct = DataStructure ()
@@ -480,9 +422,9 @@ def animate(i):
 
 
 
-def saveZeros(x, y, z):
+def saveZeros(x_mag, y_mag, z_mag):
     zeroFile = open("/home/pi/medidor_campo_b/zeros.txt", "w+")
-    zeroFile.write(str(x) + "," + str(y) + "," + str(z))
+    zeroFile.write(str(x_mag) + "," + str(y_mag) + "," + str(z_mag))
     zeroFile.close()
 
 
@@ -557,42 +499,42 @@ def SaveMeasureData (axis):
 def main():
     app = BMeasureApp()
 
-    ani = animation.FuncAnimation(f, animate, interval=ANIM_INTVL)
+    #ani = animation.FuncAnimation(f, animate, interval=ANIM_INTVL)
 
     lsm303 = Adafruit_LSM303.LSM303()
 
     # qmc = Qmc()
     # qmc.QMCReg_Config()
     #
-    dataStruct.startElapsedTime()
+    #dataStruct.startElapsedTime()
     # dataStruct.getZerosFromFile()
     # qmc.setZero(dataStruct.getZeros())
 
     while True:
         #start = time.time()											# For debugging
-
+        dataStruct.startElapsedTime()
         accel, mag = lsm303.read()
 
-        dataStruct.setAxis(accel)
+        dataStruct.setAxis(mag, accel)
         # dataStruct.setRaw(qmc.getRawAxis())
         # qmc.setZero(dataStruct.getZeros())
         #qmc.ConsolePrint(dataStruct.getAxis())							# For debugging
 
         axisData = dataStruct.getAxis()
-        dataGraph(axisData, dataStruct.getElapsedTime())
+        #dataGraph(axisData, dataStruct.getElapsedTime())
         if dataStruct.getSaveDataStatus():
             SaveMeasureData(axisData)
 
 		# if the user press the hold button
         if app.getHoldStatus():
-            app.frames[PageOne].refreshLabel()
+            app.frames[PageOne].refreshLabel(dataStruct.measureSceenType)
 
         winUpdate (app)
 
         #end = time.time()												# For debugging
         #print("TIEMPO: " + str(end - start))							# For debugging
 
-        time.sleep(.05)
+        time.sleep(.005)
 
     return 0
 
