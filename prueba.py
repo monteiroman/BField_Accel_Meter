@@ -62,8 +62,8 @@ GRAPHLENGTH = 50         # Quantity of points in the x axis of thee graph
 ANIM_INTVL = 1000        # Animation Interval in mS
 AVERAGE_ARRAY_SIZE = 50  # Array size of the average filter
 SAVEMEASURELENGTH = 50   # Quantity of measures saved in the file
-BFIELDSCREEN = 0
-ACCSCREEN = 1
+BFIELDSCREEN = 1
+ACCSCREEN = 2
 
 #_________________________CLASSES DEFINITIONS________________________________#
 #--------------------------------------------------------------------------------------#
@@ -83,19 +83,21 @@ class BMeasureApp(tk.Tk):
 
         self.frames = {}
 
-        for F in (StartPage, PageOne):
+        for F in (SelectMeasurePage, StartPage, MeasurePage):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(StartPage)
+        # self.show_frame(StartPage)
         time.sleep(4)
-        self.show_frame(PageOne)
+        self.show_frame(SelectMeasurePage)
 
         self.holdStatus = True
 
 
-    def show_frame(self, cont):
+    def show_frame(self, cont, measureType = 0):
+        if measureType is not 0:
+            dataStruct.setScreenType(measureType)
         frame = self.frames[cont]
         frame.tkraise()
 
@@ -136,7 +138,7 @@ class StartPage(tk.Frame):
 
         # If we want the start button
         #button = ttk.Button(self, text="Ir al medidor", style='my.TButton',
-                            #command=lambda: controller.show_frame(PageOne))
+                            #command=lambda: controller.show_frame(MeasurePage))
         #button.pack()
 
         self.img = ImageTk.PhotoImage(Image.open("/home/pi/BField_Accel_Meter/sources/pictures/logo1.png"))
@@ -144,8 +146,34 @@ class StartPage(tk.Frame):
         self.panel.pack()
 
 
+class SelectMeasurePage(tk.Frame):
 
-class PageOne(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+
+        s = ttk.Style()
+        s.configure('my.TButton', font=("Verdana", 16))
+
+
+        buttonB = ttk.Button(self, text="Ir al medidor de campo", style='my.TButton',
+                            command=lambda: controller.show_frame(MeasurePage, BFIELDSCREEN))
+        buttonB.pack()
+
+        buttonG = ttk.Button(self, text="Ir al medidor de aceleracion", style='my.TButton',
+                            command=lambda: controller.show_frame(MeasurePage, ACCSCREEN))
+        buttonG.pack()
+
+        exitButton = ttk.Button(self, text="Salir", style='my.TButton',
+                            command=lambda: controller.quitProgram())
+        exitButton.pack()
+
+        # self.img = ImageTk.PhotoImage(Image.open("/home/pi/BField_Accel_Meter/sources/pictures/logo1.png"))
+        # self.panel = Label(self, image = self.img)
+        # self.panel.pack()
+
+
+
+class MeasurePage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
@@ -212,7 +240,7 @@ class PageOne(tk.Frame):
         canvas.show()
         canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew")
 
-        self.exitButton = ttk.Button(self, text="Salir", padding=(5,5), style='my.TButton', command=lambda: controller.quitProgram())
+        self.exitButton = ttk.Button(self, text="Atras", padding=(5,5), style='my.TButton', command=lambda: controller.show_frame(SelectMeasurePage))
         self.exitButton.grid(row=2, column=0, sticky="nsew")
         self.setZeroButton = ttk.Button(self, text="Setear ceros", padding=(5,5), style='my.TButton', command=lambda: controller.setQMCZeros())
         self.setZeroButton.grid(row=2, column=1, sticky="nsew")
@@ -238,7 +266,7 @@ class PageOne(tk.Frame):
             self.msg_z.set(" Z: {:.2f}".format(axis[6]) + " G")
             self.msg_mod.set(" Mod: {:.2f}".format(axis[7]) + " G")
 
-        self.msg_elap.set(" Frec: {:.0f}".format(1/(time.microseconds/1000000)) + " HZ")
+        self.msg_elap.set(" Frec: {:.0f}".format(dataStruct.getSamplingRate()) + " HZ")
 
         if dataStruct.getSaveDataStatus():
             self.msg_saveStatus.set("   Guardando...")
@@ -312,7 +340,8 @@ class DataStructure ():
         self.measureQuantity = 0
         self.measureFile = 0
 
-        self.measureSceenType = ACCSCREEN
+        self.measureSceenType = BFIELDSCREEN
+        self.samplingRate = 0
 
     def setAxis (self, axis_mag, axis_accel):
         self.x_mag = axis_mag[0]/10
@@ -391,11 +420,17 @@ class DataStructure ():
     def setSaveDataStatus (self, value):
         self.saveDataStatus = value
 
-    def setScreenType (type):
+    def setScreenType (self, type):
         self.measureSceenType = type
 
-    def getSceenType ():
+    def getSceenType (self):
         return self.measureSceenType
+
+    def setSamplingRate (self, sr):
+        self.samplingRate = sr
+
+    def getSamplingRate (self):
+        return self.samplingRate
 
 
 dataStruct = DataStructure ()
@@ -511,7 +546,7 @@ def main():
     # qmc.setZero(dataStruct.getZeros())
 
     while True:
-        #start = time.time()											# For debugging
+        start = time.time()											# For debugging
         dataStruct.startElapsedTime()
         accel, mag = lsm303.read()
 
@@ -527,14 +562,15 @@ def main():
 
 		# if the user press the hold button
         if app.getHoldStatus():
-            app.frames[PageOne].refreshLabel(dataStruct.measureSceenType)
+            app.frames[MeasurePage].refreshLabel(dataStruct.getSceenType())
 
         winUpdate (app)
 
-        #end = time.time()												# For debugging
-        #print("TIEMPO: " + str(end - start))							# For debugging
+        # time.sleep(.0005)
 
-        time.sleep(.005)
+        end = time.time()                                                           # For debugging
+        dataStruct.setSamplingRate(1/(end - start))												# For debugging
+        # print("Frecuencia: {:.0f}".format(1/(end - start)))							# For debugging
 
     return 0
 
