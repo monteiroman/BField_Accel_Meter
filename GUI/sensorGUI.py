@@ -25,6 +25,8 @@ a = f.add_subplot(111)
 BFIELDSCREEN = 1
 ACCSCREEN = 2
 SPLASHTIME = 1
+GRAPHLENGTH = 50         # Quantity of points in the x axis of thee graph
+
 
 
 class BMeasureApp(tk.Tk):
@@ -64,6 +66,7 @@ class BMeasureApp(tk.Tk):
 
     def quitProgram (self):
         self.tk.destroy()
+        self.dataStruct.setQuitState()
 
     def holdMeasure (self):
         if self.holdStatus:
@@ -92,9 +95,12 @@ class StartPage(tk.Frame):
 
         label = tk.Label(self, text="Medidor de Campo B", font=LARGE_FONT)
         label.pack(pady=10,padx=10)
-        label = tk.Label(self, text="Trabajo Practico realizado para la materia Medidas Electrónicas I", font=MEDIUM_FONT)
+        label = tk.Label(self, text=
+            "Trabajo Practico realizado para la materia Medidas Electrónicas I",
+             font=MEDIUM_FONT)
         label.pack(pady=10,padx=10)
-        label = tk.Label(self, text="de la facultad regional Buenos Aires de la UTN.", font=MEDIUM_FONT)
+        label = tk.Label(self, text=
+            "de la facultad regional Buenos Aires de la UTN.", font=MEDIUM_FONT)
         label.pack(pady=10,padx=10)
 
         # If we want the start button
@@ -102,7 +108,8 @@ class StartPage(tk.Frame):
                             #command=lambda: controller.show_frame(MeasurePage))
         #button.pack()
 
-        self.img = ImageTk.PhotoImage(Image.open("/home/pi/BField_Accel_Meter/sources/pictures/logo1.png"))
+        self.img = ImageTk.PhotoImage(
+                Image.open("/home/pi/BField_Accel_Meter/sources/pictures/logo1.png"))
         self.panel = Label(self, image = self.img)
         self.panel.pack()
 
@@ -245,8 +252,6 @@ class MeasurePage(tk.Frame):
 
     def refreshLabel (self, type):
         axis = self.controller.dataStruct.getAxis()
-        time = self.controller.dataStruct.getElapsedTime()
-        # tmp = float(time.seconds + (time.microseconds / 1000000))
 
         if type == BFIELDSCREEN:
             self.msg_Title.set("Campo B")
@@ -268,3 +273,49 @@ class MeasurePage(tk.Frame):
             self.msg_saveStatus.set("   Guardando...")
         else:
             self.msg_saveStatus.set("   Listo para guardar")
+
+
+def winUpdate (app):
+    app.update_idletasks()
+    app.update()
+
+
+def animate(i):
+    a.clear()
+
+    a.plot(dataStruct.timeGraphList, dataStruct.xGraphList,
+        dataStruct.timeGraphList, dataStruct.yGraphList,
+        dataStruct.timeGraphList, dataStruct.zGraphList)
+    a.legend(("Eje X", "Eje Y", "Eje Z"), loc="upper right")
+    a.set_title("Campo B en eje Z")
+    a.set(xlabel='Tiempo [S]', ylabel='[uT]')
+    a.axis(ymin=0, ymax=53)
+
+
+def dataGraph (axis, timeStamp):
+
+    x_axis = axis[0]
+    y_axis = axis[1]
+    z_axis = axis[2]
+    tmp = float(timeStamp.seconds + (timeStamp.microseconds / 1000000))
+
+    if len(dataStruct.timeGraphList) <= GRAPHLENGTH:
+        dataStruct.timeAppend(tmp)
+        #z_axis_g=float('%.1f'%z_axis)									#set decimals to a requested value for graph
+        #dataStruct.zAppend(z_axis_g)
+        dataStruct.xAppend(abs(x_axis))
+        dataStruct.yAppend(abs(y_axis))
+        dataStruct.zAppend(abs(z_axis))
+
+
+    else:
+        dataStruct.popTimeList()
+        dataStruct.timeAppend(tmp)
+        dataStruct.popXList()
+        dataStruct.popYList()
+        dataStruct.popZList()
+        #z_axis_g=float('%.1f'%z_axis)                                  #set decimals to a requested value for graph
+        #dataStruct.zAppend(z_axis_g)
+        dataStruct.xAppend(abs(x_axis))
+        dataStruct.yAppend(abs(y_axis))
+        dataStruct.zAppend(abs(z_axis))

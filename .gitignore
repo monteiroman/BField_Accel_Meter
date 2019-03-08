@@ -1,0 +1,8 @@
+.ftpconfig
+Adafruit_GPIO
+Adafruit_LSM303
+Adafruit_PureIO
+data.txt
+zeros.txt
+DataStructure/__pycache__/
+GUI/__pycache__/

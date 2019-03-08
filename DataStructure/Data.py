@@ -8,6 +8,7 @@ BFIELDCORRECTION = 0.1
 ACCCORRECTION = 0.001
 
 AVERAGE_ARRAY_SIZE = 50  # Array size of the average filter
+SAVEMEASURELENGTH = 50   # Quantity of measures saved in the file
 
 BFIELDSCREEN = 1
 ACCSCREEN = 2
@@ -57,40 +58,47 @@ class DataStructure (object):
         self.start_time      = 0
         self.timeStamp       = 0
         self.saveDataStatus  = False
+        self.quitState       = False
         self.measureQuantity = 0
         self.measureFile     = 0
 
         self.measureSceenType = BFIELDSCREEN
         self.samplingRate    = 0
-        self.avgFilter       = averageFilter()
+
+        self.xAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
+        self.yAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
+        self.zAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
+        self.xAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
+        self.yAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
+        self.zAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
 
     def setAxis (self, axis_mag, axis_accel):
         self.x_mag_raw = axis_mag[0]
         self.y_mag_raw = axis_mag[1]
         self.z_mag_raw = axis_mag[2]
-        self.x_mag = (self.x_mag_raw - self.x_zero_mag)*BFIELDCORRECTION
-        self.y_mag = (self.y_mag_raw - self.y_zero_mag)*BFIELDCORRECTION
-        self.z_mag = (self.z_mag_raw - self.z_zero_mag)*BFIELDCORRECTION
+        self.x_mag = (self.x_mag_raw - self.x_zero_mag) * BFIELDCORRECTION
+        self.y_mag = (self.y_mag_raw - self.y_zero_mag) * BFIELDCORRECTION
+        self.z_mag = (self.z_mag_raw - self.z_zero_mag) * BFIELDCORRECTION
         self.mod_mag = math.sqrt(self.x_mag**2 + self.y_mag**2 + self.z_mag**2)
 
         self.x_acc_raw = axis_accel[0]
         self.y_acc_raw = axis_accel[1]
         self.z_acc_raw = axis_accel[2]
-        self.x_acc = (self.x_acc_raw - self.x_zero_acc)*ACCCORRECTION
-        self.y_acc = (self.y_acc_raw - self.y_zero_acc)*ACCCORRECTION
-        self.z_acc = (self.z_acc_raw - self.z_zero_acc)*ACCCORRECTION
+        self.x_acc = (self.x_acc_raw - self.x_zero_acc) * ACCCORRECTION
+        self.y_acc = (self.y_acc_raw - self.y_zero_acc) * ACCCORRECTION
+        self.z_acc = (self.z_acc_raw - self.z_zero_acc) * ACCCORRECTION
         self.mod_acc = math.sqrt(self.x_acc**2 + self.y_acc**2 + self.z_acc**2)
 
-        [self.x_avg_mag, self.y_avg_mag, self.z_avg_mag,
-            self.x_avg_acc, self.y_avg_acc, self.z_avg_acc] = self.avgFilter.filterAvg((self.x_mag,
-            self.y_mag, self.z_mag, self.x_acc, self.y_acc, self.z_acc))
+        self.avgFilter()
 
-        self.mod_avg_mag = math.sqrt(self.x_avg_mag**2 + self.y_avg_mag**2 + self.z_avg_mag**2)
-        self.mod_avg_acc = math.sqrt(self.x_avg_acc**2 + self.y_avg_acc**2 + self.z_avg_acc**2)
+        self.mod_avg_mag = math.sqrt(self.x_avg_mag**2 + self.y_avg_mag**2 +
+                                        self.z_avg_mag**2)
+        self.mod_avg_acc = math.sqrt(self.x_avg_acc**2 + self.y_avg_acc**2 +
+                                        self.z_avg_acc**2)
 
     def getAxis (self):
         return (self.x_avg_mag, self.y_avg_mag, self.z_avg_mag, self.mod_avg_mag,
-                            self.x_avg_acc, self.y_avg_acc, self.z_avg_acc, self.mod_avg_acc)
+                self.x_avg_acc, self.y_avg_acc, self.z_avg_acc, self.mod_avg_acc)
 
     def startElapsedTime (self):
         self.start_time = datetime.datetime.now()
@@ -172,36 +180,24 @@ class DataStructure (object):
     def getSamplingRate (self):
         return self.samplingRate
 
-
-class averageFilter ():
-
-    def __init__(self, *args, **kwargs):
-        self.xAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
-        self.yAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
-        self.zAverageArray_mag = [0] * AVERAGE_ARRAY_SIZE
-        self.xAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
-        self.yAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
-        self.zAverageArray_acc = [0] * AVERAGE_ARRAY_SIZE
-        self.average = ["x_mag", "y_mag", "z_mag", "x_acc", "y_acc", "z_acc"]
-
-    def filterAvg (self, axis):
+    def avgFilter (self):
         self.xSum_mag = 0
         self.ySum_mag = 0
         self.zSum_mag = 0
         self.xSum_acc = 0
         self.ySum_acc = 0
         self.zSum_acc = 0
-        self.xAverageArray_mag.append(axis[0])
+        self.xAverageArray_mag.append(self.x_mag)
         self.xAverageArray_mag.pop(0)
-        self.yAverageArray_mag.append(axis[1])
+        self.yAverageArray_mag.append(self.y_mag)
         self.yAverageArray_mag.pop(0)
-        self.zAverageArray_mag.append(axis[2])
+        self.zAverageArray_mag.append(self.z_mag)
         self.zAverageArray_mag.pop(0)
-        self.xAverageArray_acc.append(axis[3])
+        self.xAverageArray_acc.append(self.x_acc)
         self.xAverageArray_acc.pop(0)
-        self.yAverageArray_acc.append(axis[4])
+        self.yAverageArray_acc.append(self.y_acc)
         self.yAverageArray_acc.pop(0)
-        self.zAverageArray_acc.append(axis[5])
+        self.zAverageArray_acc.append(self.z_acc)
         self.zAverageArray_acc.pop(0)
 
         for i in range(0, AVERAGE_ARRAY_SIZE):
@@ -213,14 +209,36 @@ class averageFilter ():
             self.zSum_acc = self.zSum_acc + self.zAverageArray_acc[i]
 
 
-        self.average[0] = float(self.xSum_mag / AVERAGE_ARRAY_SIZE)
-        self.average[1] = float(self.ySum_mag / AVERAGE_ARRAY_SIZE)
-        self.average[2] = float(self.zSum_mag / AVERAGE_ARRAY_SIZE)
-        self.average[3] = float(self.xSum_acc / AVERAGE_ARRAY_SIZE)
-        self.average[4] = float(self.ySum_acc / AVERAGE_ARRAY_SIZE)
-        self.average[5] = float(self.zSum_acc / AVERAGE_ARRAY_SIZE)
+        self.x_avg_mag = float(self.xSum_mag / AVERAGE_ARRAY_SIZE)
+        self.y_avg_mag = float(self.ySum_mag / AVERAGE_ARRAY_SIZE)
+        self.z_avg_mag = float(self.zSum_mag / AVERAGE_ARRAY_SIZE)
+        self.x_avg_acc = float(self.xSum_acc / AVERAGE_ARRAY_SIZE)
+        self.y_avg_acc = float(self.ySum_acc / AVERAGE_ARRAY_SIZE)
+        self.z_avg_acc = float(self.zSum_acc / AVERAGE_ARRAY_SIZE)
 
-        return(self.average)
+    def SaveMeasureData (self):
+        if self.measureQuantity == 0: 									# Only open it if it is the first measure
+            self.measureFile = open("/home/pi/BField_Accel_Meter/data.txt", "w+")
+
+        self.measureFile.write(str(self.x_avg_mag) + "," +
+                               str(self.y_avg_mag) + "," +
+                               str(self.z_avg_mag) + "," +
+                               str(self.x_avg_acc) + "," +
+                               str(self.y_avg_acc) + "," +
+                               str(self.z_avg_acc) + "\n")
+        self.measureQuantity = self.measureQuantity +1
+
+        if self.measureQuantity == SAVEMEASURELENGTH:
+            self.setSaveDataStatus(False)
+            self.measureQuantity = 0
+            self.measureFile.close()
+            return
+
+    def setQuitState (self):
+        self.quitState = True
+
+    def getQuitState (self):
+        return self.quitState
 
 
 def saveZeros(x_mag, y_mag, z_mag, x_acc, y_acc, z_acc):
