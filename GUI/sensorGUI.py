@@ -187,13 +187,19 @@ class MeasurePage(tk.Frame):
         self.msg_z.set("---")
         self.msg_mod = StringVar()
         self.msg_mod.set("---")
-        self.msg_elap = StringVar()
-        self.msg_elap.set("---")
+        self.msg_xpp = StringVar()
+        self.msg_xpp.set("---")
+        self.msg_ypp = StringVar()
+        self.msg_ypp.set("---")
+        self.msg_zpp = StringVar()
+        self.msg_zpp.set("---")
+        self.msg_freq = StringVar()
+        self.msg_freq.set("---")
         self.msg_saveStatus = StringVar()
-        self.msg_saveStatus.set("    Listo para guardar")
+        self.msg_saveStatus.set("---")
 
         self.separator = ttk.Label(self.valuesFrame,
-                            text="--------------------", font=LARGE_FONT)
+                            text="_____________________", font=MEDIUM_FONT)
         self.separator.grid(row=1, column=0, sticky="nsew")
         self.labelX = ttk.Label(self.valuesFrame,
                             textvariable=self.msg_x, font=MEDIUM_FONT)
@@ -207,34 +213,32 @@ class MeasurePage(tk.Frame):
         self.labelMod = ttk.Label(self.valuesFrame,
                             textvariable=self.msg_mod, font=MEDIUM_FONT)
         self.labelMod.grid(row=5, column=0, sticky="nsew")
-        self.labelElap = ttk.Label(self.valuesFrame,
-                            textvariable=self.msg_elap, font=MEDIUM_FONT)
-        self.labelElap.grid(row=6, column=0, sticky="nsew")
-
-#---------------making size for the graph
-        self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        self.labelZ.grid(row=7, column=0, sticky="nsew")
+        self.separator = ttk.Label(self.valuesFrame,
+                            text="_____________________", font=MEDIUM_FONT)
+        self.separator.grid(row=6, column=0, sticky="nsew")
+        self.labelXPp = ttk.Label(self.valuesFrame,
+                            textvariable=self.msg_xpp, font=MEDIUM_FONT)
+        self.labelXPp.grid(row=7, column=0, sticky="nsew")
+        self.labelYPp = ttk.Label(self.valuesFrame,
+                            textvariable=self.msg_ypp, font=MEDIUM_FONT)
+        self.labelYPp.grid(row=8, column=0, sticky="nsew")
+        self.labelZPp = ttk.Label(self.valuesFrame,
+                            textvariable=self.msg_zpp, font=MEDIUM_FONT)
+        self.labelZPp.grid(row=9, column=0, sticky="nsew")
+        self.labelFreq = ttk.Label(self.valuesFrame,
+                            textvariable=self.msg_freq, font=MEDIUM_FONT)
+        self.labelFreq.grid(row=10, column=0, sticky="nsew")
         self.holdButton = ttk.Button(self.valuesFrame, text="Hold",
                             padding=(5,5), style='my.TButton',
                             command=lambda: controller.holdMeasure())
-        self.holdButton.grid(row=8, column=0, sticky="nsew")
-        self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        self.labelZ.grid(row=9, column=0, sticky="nsew")
+        self.holdButton.grid(row=11, column=0, sticky="nsew")
         self.measureButton = ttk.Button(self.valuesFrame, text="Guardar mediciones",
                             padding=(5,5), style='my.TButton',
                             command=lambda: controller.saveBtnClicked())
-        self.measureButton.grid(row=10, column=0, sticky="nsew")
-        self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        self.labelZ.grid(row=11, column=0, sticky="nsew")
+        self.measureButton.grid(row=12, column=0, sticky="nsew")
         self.saveStatusLabel = ttk.Label(self.valuesFrame,
                             textvariable=self.msg_saveStatus, font=SMALL_FONT)
-        self.saveStatusLabel.grid(row=12, column=0, sticky="nsew")
-        # self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        # self.labelZ.grid(row=12, column=0, sticky="nsew")
-        # self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        # self.labelZ.grid(row=12, column=0, sticky="nsew")
-        #self.labelZ = ttk.Label(self.valuesFrame, text=" ", font=MEDIUM_FONT)
-        #self.labelZ.grid(row=13, column=0, sticky="nsew")
+        self.saveStatusLabel.grid(row=13, column=0, sticky="nsew")
 #---------------
 
         canvas = FigureCanvasTkAgg(f, self)
@@ -252,6 +256,7 @@ class MeasurePage(tk.Frame):
 
     def refreshLabel (self, type):
         axis = self.controller.dataStruct.getAxis()
+        pp = self.controller.dataStruct.getPpValues()
 
         if type == BFIELDSCREEN:
             self.msg_Title.set("Campo B")
@@ -259,15 +264,21 @@ class MeasurePage(tk.Frame):
             self.msg_y.set(" Y: {:.2f}".format(axis[1]) + " uT")
             self.msg_z.set(" Z: {:.2f}".format(axis[2]) + " uT")
             self.msg_mod.set(" Mod: {:.2f}".format(axis[3]) + " uT")
+            self.msg_xpp.set(" Xpp: {:.2f}".format(pp[0]) + " uT")
+            self.msg_ypp.set(" Ypp: {:.2f}".format(pp[1]) + " uT")
+            self.msg_zpp.set(" Zpp: {:.2f}".format(pp[2]) + " uT")
 
         if type == ACCSCREEN:
             self.msg_Title.set("Aceleracion")
-            self.msg_x.set(" X: {:.2f}".format(axis[4]) + " G")
-            self.msg_y.set(" Y: {:.2f}".format(axis[5]) + " G")
-            self.msg_z.set(" Z: {:.2f}".format(axis[6]) + " G")
-            self.msg_mod.set(" Mod: {:.2f}".format(axis[7]) + " G")
+            self.msg_x.set(" X: {:.3f}".format(axis[4]) + " G")
+            self.msg_y.set(" Y: {:.3f}".format(axis[5]) + " G")
+            self.msg_z.set(" Z: {:.3f}".format(axis[6]) + " G")
+            self.msg_mod.set(" Mod: {:.3f}".format(axis[7]) + " G")
+            self.msg_xpp.set(" Xpp: {:.3f}".format(pp[3]) + " G")
+            self.msg_ypp.set(" Ypp: {:.3f}".format(pp[4]) + " G")
+            self.msg_zpp.set(" Zpp: {:.3f}".format(pp[5]) + " G")
 
-        self.msg_elap.set(" Frec: {:.0f}".format(self.controller.dataStruct.getSamplingRate()) + " HZ")
+        self.msg_freq.set(" Frec: {:.0f}".format(self.controller.dataStruct.getSamplingRate()) + " HZ")
 
         if self.controller.dataStruct.getSaveDataStatus():
             self.msg_saveStatus.set("   Guardando...")

@@ -7,7 +7,7 @@ import math
 BFIELDCORRECTION = 0.1
 ACCCORRECTION = 0.001
 
-AVERAGE_ARRAY_SIZE = 50  # Array size of the average filter
+AVERAGE_ARRAY_SIZE = 100  # Array size of the average filter
 SAVEMEASURELENGTH = 50   # Quantity of measures saved in the file
 
 BFIELDSCREEN = 1
@@ -37,7 +37,6 @@ class DataStructure (object):
         self.z_avg_mag       = 0
         self.mod_avg_mag     = 0
 
-
         self.x_acc           = 0
         self.y_acc           = 0
         self.z_acc           = 0
@@ -52,7 +51,6 @@ class DataStructure (object):
         self.y_avg_acc       = 0
         self.z_avg_acc       = 0
         self.mod_avg_acc     = 0
-
 
         self.end_time        = 0
         self.start_time      = 0
@@ -239,6 +237,31 @@ class DataStructure (object):
 
     def getQuitState (self):
         return self.quitState
+
+    def getPpValues (self):
+        xMax_mag = max(self.xAverageArray_mag)
+        xMin_mag = min(self.xAverageArray_mag)
+        yMax_mag = max(self.yAverageArray_mag)
+        yMin_mag = min(self.yAverageArray_mag)
+        zMax_mag = max(self.zAverageArray_mag)
+        zMin_mag = min(self.zAverageArray_mag)
+
+        xMax_acc = max(self.xAverageArray_acc)
+        xMin_acc = min(self.xAverageArray_acc)
+        yMax_acc = max(self.yAverageArray_acc)
+        yMin_acc = min(self.yAverageArray_acc)
+        zMax_acc = max(self.zAverageArray_acc)
+        zMin_acc = min(self.zAverageArray_acc)
+
+        xPp_mag = xMax_mag - xMin_mag
+        yPp_mag = yMax_mag - yMin_mag
+        zPp_mag = zMax_mag - zMin_mag
+
+        xPp_acc = xMax_acc - xMin_acc
+        yPp_acc = yMax_acc - yMin_acc
+        zPp_acc = zMax_acc - zMin_acc
+
+        return xPp_mag, yPp_mag, zPp_mag, xPp_acc, yPp_acc, zPp_acc
 
 
 def saveZeros(x_mag, y_mag, z_mag, x_acc, y_acc, z_acc):
